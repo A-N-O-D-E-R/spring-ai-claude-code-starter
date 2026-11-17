@@ -1,0 +1,20 @@
+# Secrets
+.env
+!.env.example
+
+# Build output
+target/
+build/
+out/
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+
+# OS / logs
+.DS_Store
+*.log

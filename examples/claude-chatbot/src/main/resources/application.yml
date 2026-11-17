@@ -1,0 +1,27 @@
+server:
+  address: 127.0.0.1   # the agent can run tools on this machine: never expose without authentication
+  port: 8080
+
+spring:
+  application:
+    name: claude-chatbot
+  ai:
+    claude-code:
+      executable: claude
+      model: sonnet
+      working-directory: ./workspace
+      timeout: 3m
+      permission-mode: default
+      max-turns: 5
+      system-prompt: >
+        You are a concise, friendly assistant embedded in a chatbot.
+        Answer in the language of the user.
+
+chatbot:
+  memory-max-messages: 40
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

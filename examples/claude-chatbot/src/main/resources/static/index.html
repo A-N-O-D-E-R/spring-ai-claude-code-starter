@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Claude Code chatbot</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
+  #log { border: 1px solid #ccc; border-radius: 8px; padding: 1rem; height: 60vh; overflow-y: auto; }
+  .msg { margin: .5rem 0; white-space: pre-wrap; }
+  .user { text-align: right; color: #0b57d0; }
+  .bot { color: #222; }
+  .err { color: #b00020; }
+  form { display: flex; gap: .5rem; margin-top: 1rem; }
+  input { flex: 1; padding: .6rem; border-radius: 6px; border: 1px solid #ccc; }
+  button { padding: .6rem 1rem; }
+</style>
+</head>
+<body>
+<h1>Claude Code chatbot</h1>
+<details id="auth" style="margin-bottom:1rem">
+  <summary>Claude token: <span id="authStatus">checking...</span></summary>
+  <form id="tokenForm" style="margin-top:.5rem">
+    <input id="token" type="password" autocomplete="off" placeholder="OAuth token (claude setup-token) or API key (sk-ant-api...)">
+    <button>Save</button>
+    <button type="button" id="clearToken">Remove</button>
+  </form>
+  <small>How to get it: run <code>claude setup-token</code> in a terminal and paste the printed token.</small><br>
+  <small id="tokenMsg"></small>
+</details>
+<div id="log"></div>
+<form id="form">
+  <input id="input" autocomplete="off" placeholder="Ask something..." autofocus>
+  <button id="send">Send</button>
+  <button type="button" id="reset">New chat</button>
+</form>
+<script>
+let conversationId = null;
+const log = document.getElementById('log'), input = document.getElementById('input'), send = document.getElementById('send');
+function add(cls, text) {
+  const d = document.createElement('div'); d.className = 'msg ' + cls; d.textContent = text;
+  log.appendChild(d); log.scrollTop = log.scrollHeight; return d;
+}
+const authStatus = document.getElementById('authStatus'), tokenInput = document.getElementById('token'),
+      tokenMsg = document.getElementById('tokenMsg'), authBox = document.getElementById('auth');
+function showAuth(s) {
+  authStatus.textContent = s.configured ? 'configured (' + (s.type === 'api_key' ? 'API key' : 'OAuth') + ' ' + s.hint + ')' : 'not set';
+  authBox.open = !s.configured;
+}
+async function loadAuth() { showAuth(await (await fetch('/api/config/token')).json()); }
+document.getElementById('tokenForm').onsubmit = async e => {
+  e.preventDefault(); tokenMsg.textContent = '';
+  const r = await fetch('/api/config/token', { method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: tokenInput.value }) });
+  const body = await r.json();
+  if (!r.ok) { tokenMsg.textContent = body.error || r.statusText; return; }
+  tokenInput.value = ''; showAuth(body); tokenMsg.textContent = 'Saved.';
+};
+document.getElementById('clearToken').onclick = async () => {
+  await fetch('/api/config/token', { method: 'DELETE' }); tokenMsg.textContent = ''; loadAuth();
+};
+loadAuth();
+document.getElementById('reset').onclick = () => { conversationId = null; log.innerHTML = ''; };
+document.getElementById('form').onsubmit = async e => {
+  e.preventDefault();
+  const message = input.value.trim(); if (!message) return;
+  input.value = ''; send.disabled = true;
+  add('user', message); const pending = add('bot', '...');
+  try {
+    const r = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ conversationId, message }) });
+    const body = await r.json();
+    if (!r.ok) throw new Error(body.error || r.statusText);
+    conversationId = body.conversationId; pending.textContent = body.reply;
+  } catch (err) { pending.className = 'msg err'; pending.textContent = err.message; }
+  send.disabled = false; input.focus();
+};
+</script>
+</body>
+</html>

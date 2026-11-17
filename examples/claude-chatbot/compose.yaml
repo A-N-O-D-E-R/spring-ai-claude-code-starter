@@ -1,0 +1,26 @@
+# From this directory:  docker compose up --build   (then open http://localhost:8080 and enter your token)
+services:
+  claude-chatbot:
+    build:
+      context: ../..
+      dockerfile: examples/claude-chatbot/Dockerfile
+    ports:
+      - "8080:8080"        # localhost only: the agent can run tools, there is no auth in front of it
+    environment:
+      # No credential here: the token (OAuth from `claude setup-token`, or a Console API key) is entered
+      # in the web UI and stored in the claude-home volume (PUT /api/config/token).
+      - CLAUDE_CONFIG_DIR=/home/app/.claude   # keeps .claude.json and its backups in the volume
+      - SPRING_AI_CLAUDE_CODE_MODEL=${CLAUDE_MODEL:-sonnet}
+      - SPRING_AI_CLAUDE_CODE_PERMISSION_MODE=default
+    volumes:
+      - workspace:/workspace          # the only directory the agent works in
+      - claude-home:/home/app/.claude # CLI state (sessions, settings)
+    read_only: false
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+volumes:
+  workspace:
+  claude-home:

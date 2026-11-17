@@ -1,0 +1,2 @@
+com.anode.ai.claude.autoconfigure.ClaudeCodeAutoConfiguration
+com.anode.ai.claude.autoconfigure.ClaudeCodeChatModelAutoConfiguration
